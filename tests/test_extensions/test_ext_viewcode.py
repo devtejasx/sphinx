@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pygments
 import pytest
@@ -193,3 +194,66 @@ def test_find_local_package_import_path(app: Sphinx) -> None:
         'href="_modules/main_package/subpackage/_subpackage2/submodule.html#Class3"'
     )
     assert count_class3 == 1
+
+
+def _viewcode_highlight_calls(app: SphinxTestApp) -> list:
+    # ``collect_pages()`` is the only caller that highlights a whole module
+    # without passing a document node as *location*.
+    subject = app.builder.highlighter  # type: ignore[attr-defined]
+    with patch.object(
+        subject,
+        'highlight_block',
+        wraps=subject.highlight_block,
+    ) as highlight:
+        app.build()
+    return [c for c in highlight.call_args_list if 'location' not in c.kwargs]
+
+
+@pytest.mark.sphinx(
+    'html',
+    testroot='ext-viewcode',
+    srcdir='ext-viewcode-highlight-options',
+    confoverrides={'highlight_options': {'python': {'python_option': True}}},
+)
+def test_viewcode_highlight_options(app: SphinxTestApp) -> None:
+    calls = _viewcode_highlight_calls(app)
+
+    assert calls
+    for call_ in calls:
+        assert call_.args[1] == 'default'
+        assert call_.kwargs['opts'] == {'python_option': True}
+
+
+@pytest.mark.sphinx(
+    'html',
+    testroot='ext-viewcode',
+    srcdir='ext-viewcode-highlight-options-rst',
+    confoverrides={
+        'highlight_language': 'rst',
+        'highlight_options': {'python': {'python_option': True}},
+    },
+)
+def test_viewcode_highlight_options_non_python_default(app: SphinxTestApp) -> None:
+    # module pages are highlighted as Python even when ``highlight_language``
+    # is something else, so the Python options still apply
+    calls = _viewcode_highlight_calls(app)
+
+    assert calls
+    for call_ in calls:
+        assert call_.args[1] == 'python'
+        assert call_.kwargs['opts'] == {'python_option': True}
+
+
+@pytest.mark.sphinx(
+    'html',
+    testroot='ext-viewcode',
+    srcdir='ext-viewcode-highlight-options-default',
+    confoverrides={'highlight_options': {'default': {'default_option': True}}},
+)
+def test_viewcode_highlight_options_default_key(app: SphinxTestApp) -> None:
+    calls = _viewcode_highlight_calls(app)
+
+    assert calls
+    for call_ in calls:
+        assert call_.args[1] == 'default'
+        assert call_.kwargs['opts'] == {'default_option': True}

@@ -12,6 +12,11 @@ Bugs fixed
   does not match the language name, such as Chinese (which reuses the
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
+* #13303: viewcode: Respect :confval:`highlight_options` when highlighting
+  module pages. As module pages always show Python source, the options for
+  the ``'python'`` lexer are used when :confval:`highlight_language` is
+  ``'default'``.
+  Patch by Tejas Nagmote
 
 
 Release 9.1.0 (released Dec 31, 2025)
