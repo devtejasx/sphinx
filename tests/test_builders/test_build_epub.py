@@ -10,6 +10,7 @@ from collections import Counter
 from pathlib import Path
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
+from zipfile import ZIP_STORED, ZipFile
 
 import pytest
 
@@ -685,3 +686,24 @@ def test_epub_spine_idref_consistency(app: SphinxTestApp) -> None:
     # Note: Some EPUBs may intentionally reference the same file multiple times,
     # so this is logged as informational rather than a strict error
     assert len(duplicated_hrefs) == 0
+
+
+@pytest.mark.sphinx('epub', testroot='basic', srcdir='epub-old-timestamps')
+def test_epub_pre_1980_timestamps(app: SphinxTestApp) -> None:
+    # Source archives that zero out timestamps for reproducibility leave
+    # files that ZIP cannot represent; the epoch is clamped rather than
+    # raising ``ValueError: ZIP does not support timestamps before 1980``.
+    app.build(force_all=True)
+    for path in app.outdir.rglob('*'):
+        if path.is_file():
+            os.utime(path, (0, 0))
+
+    app.builder.build_epub()
+
+    epub_filename = app.outdir / (app.config.epub_basename + '.epub')
+    with ZipFile(epub_filename) as epub:
+        infos = epub.infolist()
+        assert infos[0].filename == 'mimetype'
+        assert infos[0].compress_type == ZIP_STORED
+        assert all(info.date_time == (1980, 1, 1, 0, 0, 0) for info in infos)
+        assert epub.read('mimetype') == b'application/epub+zip'

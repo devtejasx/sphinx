@@ -6,11 +6,12 @@ import html
 import os
 import os.path
 import re
+import shutil
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import quote
-from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
+from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 
 from docutils import nodes
 from docutils.utils import smartquotes
@@ -121,6 +122,31 @@ def sphinx_smarty_pants(t: str, language: str = 'en') -> str:
 
 
 ssp = sphinx_smarty_pants
+
+
+#: ZIP timestamps cannot represent dates before 1980, so entries older than
+#: that are written with the earliest representable timestamp instead.
+_ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)
+
+
+def _write_zip_member(
+    epub: ZipFile, path: Path, arcname: str, compress_type: int
+) -> None:
+    """Add *path* to *epub* as *arcname*, clamping pre-1980 timestamps.
+
+    :meth:`zipfile.ZipFile.write` raises :exc:`ValueError` for files whose
+    modification time predates 1980, which happens with source archives that
+    zero out timestamps for reproducibility.
+    """
+    st = path.stat()
+    date_time = time.localtime(st.st_mtime)[:6]
+    if date_time[0] < 1980:
+        date_time = _ZIP_EPOCH
+    info = ZipInfo(arcname, date_time)
+    info.compress_type = compress_type
+    info.external_attr = (st.st_mode & 0xFFFF) << 16
+    with path.open('rb') as src, epub.open(info, 'w') as dst:
+        shutil.copyfileobj(src, dst)
 
 
 # The epub publisher
@@ -802,8 +828,8 @@ class EpubBuilder(StandaloneHTMLBuilder):
         logger.info(__('writing %s file...'), outname)
         epub_filename = self.outdir / outname
         with ZipFile(epub_filename, 'w', ZIP_DEFLATED) as epub:
-            epub.write(self.outdir / 'mimetype', 'mimetype', ZIP_STORED)
+            _write_zip_member(epub, self.outdir / 'mimetype', 'mimetype', ZIP_STORED)
             for filename in ('META-INF/container.xml', 'content.opf', 'toc.ncx'):
-                epub.write(self.outdir / filename, filename, ZIP_DEFLATED)
+                _write_zip_member(epub, self.outdir / filename, filename, ZIP_DEFLATED)
             for filename in self.files:
-                epub.write(self.outdir / filename, filename, ZIP_DEFLATED)
+                _write_zip_member(epub, self.outdir / filename, filename, ZIP_DEFLATED)

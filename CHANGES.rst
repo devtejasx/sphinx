@@ -12,6 +12,10 @@ Bugs fixed
   does not match the language name, such as Chinese (which reuses the
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
+* #14168: epub: Do not crash when a file in the output directory has a
+  modification time earlier than 1980, which ZIP archives cannot represent.
+  Such timestamps are clamped to 1980-01-01.
+  Patch by Tejas Nagmote
 
 
 Release 9.1.0 (released Dec 31, 2025)
