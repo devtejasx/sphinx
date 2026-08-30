@@ -4,6 +4,12 @@ Release 9.1.1 (in development)
 Bugs fixed
 ----------
 
+* #14555: Correct the documentation of the :event:`autodoc-skip-member`
+  event. ``obj_type`` is the type of the object containing the member,
+  and ``name`` is the member's name on its parent rather than a fully
+  qualified name.
+  Patch by Tejas Nagmote
+
 * #14465: LaTeX: PDF build crash since LaTeX June 2026 release if tables are
   styled with ``'colorrows'`` (which is the default).
   Patch by Jean-François B.
