@@ -11,12 +11,15 @@ from typing import TYPE_CHECKING
 import pytest
 from docutils import nodes
 
+from sphinx.ext.imgmath import read_svg_depth, write_svg_depth
 from sphinx.ext.mathjax import MATHJAX_URL
 from sphinx.testing.util import assert_node
 
 from tests.utils import extract_node
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sphinx.testing.util import SphinxTestApp
 
 FAKE_MATHJAX_URL = 'https://example.org/fake-mathjax.js'
@@ -30,6 +33,22 @@ def has_binary(binary: str) -> bool:
     except OSError:
         pass
     return True
+
+
+def test_svg_depth_roundtrip(tmp_path: Path) -> None:
+    svg = tmp_path / 'math.svg'
+    svg.write_text('<svg></svg>', encoding='utf8')
+    assert read_svg_depth(svg) is None
+
+    write_svg_depth(svg, 3)
+    assert read_svg_depth(svg) == 3
+
+
+def test_read_svg_depth_of_an_empty_file(tmp_path: Path) -> None:
+    # an SVG with no last line at all: reading its depth is not an error
+    svg = tmp_path / 'empty.svg'
+    svg.write_text('', encoding='utf8')
+    assert read_svg_depth(svg) is None
 
 
 @pytest.mark.skipif(

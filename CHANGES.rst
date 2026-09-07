@@ -4,6 +4,10 @@ Release 9.1.1 (in development)
 Bugs fixed
 ----------
 
+* #14466: imgmath: Do not crash with ``UnboundLocalError`` when reading the
+  depth of an empty SVG file, which a parallel build can observe.
+  Patch by Tejas Nagmote
+
 * #14465: LaTeX: PDF build crash since LaTeX June 2026 release if tables are
   styled with ``'colorrows'`` (which is the default).
   Patch by Jean-François B.
