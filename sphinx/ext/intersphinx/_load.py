@@ -401,15 +401,15 @@ def _fetch_inventory_url(
     except Exception as err:
         err.args = (
             'intersphinx inventory %r not fetchable due to %s: %s',
-            inv_location,
+            _get_safe_url(inv_location),
             err.__class__,
-            str(err),
+            _hide_password(str(err), inv_location),
         )
         raise
 
     if inv_location != new_inv_location:
         msg = __('intersphinx inventory has moved: %s -> %s')
-        LOGGER.info(msg, inv_location, new_inv_location)
+        LOGGER.info(msg, _get_safe_url(inv_location), _get_safe_url(new_inv_location))
 
         if target_uri in {
             inv_location,
@@ -459,6 +459,31 @@ def _get_safe_url(url: str) -> str:
             frags[1] = f'{parts.username}@{parts.hostname}'
 
         return urlunsplit(frags)
+
+
+def _hide_password(text: str, url: str) -> str:
+    """Return *text* with the basic auth password of *url* obscured.
+
+    :meth:`~requests.Response.raise_for_status` and the exceptions raised
+    beneath it quote the URL they were given, credentials and all, so masking
+    only the URL that Sphinx formats itself still leaks the password through the
+    underlying error message.
+
+    E.g.: ``... for url: https://user:12345@example.com``
+       => ``... for url: https://user:***@example.com``
+
+    :param text: a message that may quote *url*
+    :param url: a url which may or may not contain basic auth credentials
+
+    :return: *text* with the password of *url* replaced by ``***``
+    """
+    password = urlsplit(url).password
+    if not password:
+        return text
+    # urlsplit does not decode, so the password reads exactly as it does in the
+    # URL itself; anchoring on ':...@' keeps a short password from matching
+    # unrelated text.
+    return text.replace(f':{password}@', ':***@')
 
 
 def _strip_basic_auth(url: str) -> str:

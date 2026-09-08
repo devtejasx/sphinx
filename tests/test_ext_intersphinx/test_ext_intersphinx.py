@@ -22,6 +22,7 @@ from sphinx.ext.intersphinx._load import (
     _fetch_inventory_data,
     _fetch_inventory_group,
     _get_safe_url,
+    _hide_password,
     _InvConfig,
     _load_inventory,
     _strip_basic_auth,
@@ -664,6 +665,88 @@ def test_getsafeurl_unauthed() -> None:
     expected = 'https://domain.com/project/objects.inv'
     actual = _get_safe_url(url)
     assert actual == expected
+
+
+def test_hide_password_in_quoted_url() -> None:
+    """A third-party message quoting the URL loses only the password."""
+    url = 'https://user:12345@domain.com/project/objects.inv'
+    text = f'401 Client Error: Unauthorized for url: {url}'
+    expected = (
+        '401 Client Error: Unauthorized for url: '
+        'https://user:***@domain.com/project/objects.inv'
+    )
+    assert _hide_password(text, url) == expected
+
+
+def test_hide_password_having_port() -> None:
+    url = 'https://user:12345@domain.com:8080/project/objects.inv'
+    assert _hide_password(f'cannot reach {url}', url) == (
+        'cannot reach https://user:***@domain.com:8080/project/objects.inv'
+    )
+
+
+def test_hide_password_unauthed() -> None:
+    """A url without credentials leaves the message alone."""
+    url = 'https://domain.com/project/objects.inv'
+    text = f'404 Client Error: Not Found for url: {url}'
+    assert _hide_password(text, url) == text
+
+
+def test_hide_password_username_only() -> None:
+    """A username without a password is not a secret and is kept."""
+    url = 'https://user@domain.com/project/objects.inv'
+    text = f'cannot reach {url}'
+    assert _hide_password(text, url) == text
+
+
+@mock.patch('sphinx.ext.intersphinx._load.requests.get')
+@pytest.mark.sphinx('html', testroot='root')
+def test_fetch_inventory_failure_hides_password(get_request, app):
+    """https://github.com/sphinx-doc/sphinx/issues/14342"""
+    inv_location = 'https://user:12345@hostname/' + INVENTORY_FILENAME
+    mocked_get = get_request.return_value.__enter__.return_value
+    intersphinx_setup(app)
+    mocked_get.raise_for_status.side_effect = Exception(
+        f'401 Client Error: Unauthorized for url: {inv_location}'
+    )
+
+    with pytest.raises(Exception) as exc_info:  # NoQA: PT011
+        _fetch_inventory_data(
+            target_uri='https://hostname/',
+            inv_location=inv_location,
+            config=_InvConfig.from_config(app.config),
+            srcdir=app.srcdir,
+            cache_path=None,
+        )
+
+    args = exc_info.value.args
+    message = args[0] % args[1:]
+    assert '12345' not in message
+    assert 'user@hostname' in message
+    assert 'user:***@hostname' in message
+
+
+@mock.patch('sphinx.ext.intersphinx._load.InventoryFile')
+@mock.patch('sphinx.ext.intersphinx._load.requests.get')
+@pytest.mark.sphinx('html', testroot='root')
+def test_fetch_inventory_redirection_hides_password(get_request, InventoryFile, app):
+    """The 'inventory has moved' notice must not quote the password either."""
+    mocked_get = get_request.return_value.__enter__.return_value
+    intersphinx_setup(app)
+    mocked_get.content = b'# Sphinx inventory version 2'
+    mocked_get.url = 'https://user:12345@hostname/new/' + INVENTORY_FILENAME
+
+    _fetch_inventory_data(
+        target_uri='https://hostname/',
+        inv_location='https://user:12345@hostname/' + INVENTORY_FILENAME,
+        config=_InvConfig.from_config(app.config),
+        srcdir=app.srcdir,
+        cache_path=None,
+    )
+
+    status = app.status.getvalue()
+    assert 'intersphinx inventory has moved' in status
+    assert '12345' not in status
 
 
 def test_inspect_main_noargs(capsys):

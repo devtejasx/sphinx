@@ -13,6 +13,9 @@ Bugs fixed
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
 
+* #14342: intersphinx: Do not expose the basic auth password of an
+  inventory URL when the inventory cannot be fetched or has moved.
+
 
 Release 9.1.0 (released Dec 31, 2025)
 =====================================
