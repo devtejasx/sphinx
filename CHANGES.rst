@@ -13,6 +13,11 @@ Bugs fixed
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
 
+* #14515: napoleon: Honour ``napoleon_include_special_with_doc`` and its
+  private and ``__init__`` counterparts when members reach the extension
+  through :mod:`sphinx.ext.autosummary`, which reports the type of the member
+  rather than the type of its container.
+
 
 Release 9.1.0 (released Dec 31, 2025)
 =====================================

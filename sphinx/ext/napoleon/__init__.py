@@ -465,45 +465,51 @@ def _skip_member(
 
     """
     has_doc = getattr(obj, '__doc__', False)
-    is_member = what in {'class', 'exception', 'module'}
-    if name != '__weakref__' and has_doc and is_member:
-        cls_is_owner = False
-        if what in {'class', 'exception'}:
-            qualname = getattr(obj, '__qualname__', '')
-            cls_path, _, _ = qualname.rpartition('.')
-            if cls_path:
-                try:
-                    if '.' in cls_path:
-                        import functools
-                        import importlib
+    if name == '__weakref__' or not has_doc:
+        return None
 
-                        mod = importlib.import_module(obj.__module__)
-                        mod_path = cls_path.split('.')
-                        cls = functools.reduce(getattr, mod_path, mod)
-                    else:
-                        cls = inspect.unwrap(obj).__globals__[cls_path]
-                except Exception:
-                    cls_is_owner = False
+    # ``what`` cannot say whether this member belongs to a class or to a
+    # module.  autodoc passes the type of the *container* the member was found
+    # on ('module', 'class' or 'exception'), while autosummary passes the type
+    # of the *member itself* ('method', 'attribute', ...), so a documented
+    # ``__call__`` arrives as 'class' from one and as 'method' from the other.
+    # Decide ownership from the object, and only consult ``what`` when the
+    # object does not say.
+    is_owned = what == 'module'
+    if not is_owned:
+        qualname = getattr(obj, '__qualname__', '')
+        cls_path, _, _ = qualname.rpartition('.')
+        if cls_path:
+            try:
+                if '.' in cls_path:
+                    import functools
+                    import importlib
+
+                    mod = importlib.import_module(obj.__module__)
+                    mod_path = cls_path.split('.')
+                    cls = functools.reduce(getattr, mod_path, mod)
                 else:
-                    cls_is_owner = (
-                        cls  # type: ignore[assignment]
-                        and hasattr(cls, name)
-                        and name in cls.__dict__
-                    )
+                    cls = inspect.unwrap(obj).__globals__[cls_path]
+            except Exception:
+                is_owned = False
             else:
-                cls_is_owner = False
+                is_owned = bool(cls) and hasattr(cls, name) and name in cls.__dict__
+        elif qualname and what not in {'class', 'exception'}:
+            # autosummary reporting the member's own type: a qualified name
+            # with no dotted prefix means the member lives in a module
+            is_owned = True
 
-        if what == 'module' or cls_is_owner:
-            is_init = name == '__init__'
-            is_special = not is_init and name.startswith('__') and name.endswith('__')
-            is_private = not is_init and not is_special and name.startswith('_')
-            inc_init = app.config.napoleon_include_init_with_doc
-            inc_special = app.config.napoleon_include_special_with_doc
-            inc_private = app.config.napoleon_include_private_with_doc
-            if (
-                (is_special and inc_special)
-                or (is_private and inc_private)
-                or (is_init and inc_init)
-            ):
-                return False
+    if is_owned:
+        is_init = name == '__init__'
+        is_special = not is_init and name.startswith('__') and name.endswith('__')
+        is_private = not is_init and not is_special and name.startswith('_')
+        inc_init = app.config.napoleon_include_init_with_doc
+        inc_special = app.config.napoleon_include_special_with_doc
+        inc_private = app.config.napoleon_include_private_with_doc
+        if (
+            (is_special and inc_special)
+            or (is_private and inc_private)
+            or (is_init and inc_init)
+        ):
+            return False
     return None

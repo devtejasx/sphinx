@@ -225,6 +225,63 @@ class TestSkipMember:
             'napoleon_include_special_with_doc',
         )
 
+    # autosummary passes the type of the member itself rather than the type of
+    # its container, so the same members arrive under a different ``what``.
+    # https://github.com/sphinx-doc/sphinx/issues/14515
+    def test_class_private_doc_as_member_type(self) -> None:
+        self.assert_skip(
+            'method',
+            '_private_doc',
+            SampleClass._private_doc,
+            False,
+            'napoleon_include_private_with_doc',
+        )
+
+    def test_class_private_undoc_as_member_type(self) -> None:
+        self.assert_skip(
+            'method',
+            '_private_undoc',
+            SampleClass._private_undoc,
+            True,
+            'napoleon_include_private_with_doc',
+        )
+
+    def test_class_special_doc_as_member_type(self) -> None:
+        self.assert_skip(
+            'method',
+            '__special_doc__',
+            SampleClass.__special_doc__,
+            False,
+            'napoleon_include_special_with_doc',
+        )
+
+    def test_class_special_undoc_as_member_type(self) -> None:
+        self.assert_skip(
+            'method',
+            '__special_undoc__',
+            SampleClass.__special_undoc__,
+            True,
+            'napoleon_include_special_with_doc',
+        )
+
+    def test_module_special_doc_as_member_type(self) -> None:
+        self.assert_skip(
+            'function',
+            '__special_doc__',
+            __special_doc__,
+            False,
+            'napoleon_include_special_with_doc',
+        )
+
+    def test_module_special_undoc_as_member_type(self) -> None:
+        self.assert_skip(
+            'function',
+            '__special_undoc__',
+            __special_undoc__,
+            True,
+            'napoleon_include_special_with_doc',
+        )
+
     def test_exception_private_doc(self) -> None:
         self.assert_skip(
             'exception',
