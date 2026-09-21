@@ -175,15 +175,10 @@ class _UnparseVisitor(ast.NodeVisitor):
         return f'{start}:{stop}:{step}'
 
     def visit_Subscript(self, node: ast.Subscript) -> str:
-        def is_simple_tuple(value: ast.expr) -> bool:
-            return (
-                isinstance(value, ast.Tuple)
-                and bool(value.elts)
-                and not any(isinstance(elt, ast.Starred) for elt in value.elts)
-            )
-
-        if is_simple_tuple(node.slice):
-            elts = ', '.join(self.visit(e) for e in node.slice.elts)  # type: ignore[attr-defined]
+        # A tuple subscript needs no parentheses, including one with starred
+        # elements such as ``tuple[*Ts]`` (valid syntax since Python 3.11).
+        if isinstance(node.slice, ast.Tuple) and node.slice.elts:
+            elts = ', '.join(self.visit(e) for e in node.slice.elts)
             return f'{self.visit(node.value)}[{elts}]'
         return f'{self.visit(node.value)}[{self.visit(node.slice)}]'
 

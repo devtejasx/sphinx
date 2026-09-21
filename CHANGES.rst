@@ -13,6 +13,10 @@ Bugs fixed
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
 
+* #13853: Render subscripts containing starred elements, such as
+  ``tuple[*Ts]`` or ``Annotated[int, *meta]``, without extra parentheses.
+  Patch by Tejas Nagmote
+
 
 Release 9.1.0 (released Dec 31, 2025)
 =====================================

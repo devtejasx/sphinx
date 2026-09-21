@@ -63,6 +63,9 @@ from sphinx.pycode.ast import unparse as ast_unparse
         ('y[:, 1:3][np.array([0, 2, 4]), :]',
          'y[:, 1:3][np.array([0, 2, 4]), :]'),     # Index, 2x Subscript, numpy extended syntax
         ('*tuple[str, int]', '*tuple[str, int]'),  # Starred
+        ('tuple[*Ts]', 'tuple[*Ts]'),              # Subscript, Starred
+        ('tuple[int, *Ts]', 'tuple[int, *Ts]'),    # Subscript, Starred
+        ('Annotated[int, *meta]', 'Annotated[int, *meta]'),  # Subscript, Starred
     ],
 )  # fmt: skip
 def test_unparse(source: str, expected: str) -> None:
