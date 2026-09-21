@@ -87,3 +87,14 @@ def test_init_environment_language(
         m.setenv('LANGUAGE', 'et_EE:et')
         _ = _empty_language_translation(rootdir)
         assert _('Hello world') == 'Tere maailm'
+
+
+def test_setlocale_from_environment_ignores_unsupported_locale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # e.g. LC_ALL=en_US.UTF-8 on a system where that locale was never generated
+    def setlocale(category: int, value: str | None = None) -> str:
+        raise locale.locale.Error
+
+    monkeypatch.setattr(locale.locale, 'setlocale', setlocale)
+    locale._setlocale_from_environment()  # must not raise

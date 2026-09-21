@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import locale
 from collections import namedtuple
 from typing import TYPE_CHECKING
 
@@ -456,6 +457,18 @@ def test_subpackage_in_toc(apidoc):
     assert 'parent.child.foo' in parent_child
 
     assert (outdir / 'parent.child.foo.rst').is_file()
+
+
+def test_unsupported_locale(tmp_path, monkeypatch):
+    # https://github.com/sphinx-doc/sphinx/issues/13822
+    def setlocale(category, value=None):
+        raise locale.Error
+
+    monkeypatch.setattr(locale, 'setlocale', setlocale)
+    (tmp_path / 'hello.py').touch()
+
+    apidoc_main(['-o', str(tmp_path), str(tmp_path)])
+    assert (tmp_path / 'hello.rst').exists()
 
 
 def test_private(tmp_path):

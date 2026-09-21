@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import locale
 import sys
 from gettext import NullTranslations, translation
@@ -142,6 +143,17 @@ def init(
     # guarantee translators[(namespace, catalog)] exists
     translators[namespace, catalog] = translator
     return translator, has_translation
+
+
+def _setlocale_from_environment() -> None:
+    """Set the process locale from the environment, as C programs do.
+
+    A locale the system does not support (e.g. ``LC_ALL=en_US.UTF-8``
+    where that locale has not been generated) raises :exc:`locale.Error`;
+    ignore it and keep the default ``C`` locale rather than crash the CLI.
+    """
+    with contextlib.suppress(locale.Error):
+        locale.setlocale(locale.LC_ALL, '')
 
 
 def init_console(
