@@ -12,6 +12,9 @@ Bugs fixed
   does not match the language name, such as Chinese (which reuses the
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
+* #13776: Texinfo: Close an admonition or block quote before the sections
+  of a toctree inside it, instead of writing ``@node`` and ``@menu``
+  inside ``@quotation``, which ``makeinfo`` rejects.
 
 
 Release 9.1.0 (released Dec 31, 2025)

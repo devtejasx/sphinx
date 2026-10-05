@@ -68,6 +68,27 @@ def test_texinfo_citation(app: SphinxTestApp) -> None:
     ) in output
 
 
+@pytest.mark.sphinx('texinfo', testroot='texinfo-toctree-in-block')
+def test_texinfo_toctree_in_block(app: SphinxTestApp) -> None:
+    # https://github.com/sphinx-doc/sphinx/issues/13776
+    app.build(force_all=True)
+
+    output = (app.outdir / 'projectnamenotset.texi').read_text(encoding='utf8')
+    body = output[output.index('@c %**start of body') :]
+    depth = 0
+    for line in body.splitlines():
+        if line.startswith(('@quotation', '@cartouche')):
+            depth += 1
+        elif line.startswith(('@end quotation', '@end cartouche')):
+            depth -= 1
+            assert depth >= 0, 'unmatched @end'
+        elif line.startswith(('@node', '@menu')):
+            assert depth == 0, f'{line!r} inside @quotation or @cartouche'
+    assert depth == 0
+    assert '@chapter One' in body
+    assert '@chapter Two' in body
+
+
 def test_default_texinfo_documents() -> None:
     config = Config({
         'project': 'STASI™ Documentation',

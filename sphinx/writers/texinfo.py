@@ -194,6 +194,9 @@ class TexinfoTranslator(SphinxTranslator):
         self.in_samp = 0
         self.handled_abbrs: set[str] = set()
         self.colwidths: list[int] = []
+        # closing commands of the open block environments that cannot contain
+        # a @node, innermost last; None once closed early by visit_section()
+        self.open_blocks: list[str | None] = []
 
     def finish(self) -> None:
         if self.previous_section is None:
@@ -399,6 +402,30 @@ class TexinfoTranslator(SphinxTranslator):
         if self.body and self.body[-1][-1:] != '\n':
             self.body.append('\n')
 
+    def open_block(self, start: str, end: str) -> None:
+        self.body.append(start)
+        self.open_blocks.append(end)
+
+    def close_block(self) -> None:
+        end = self.open_blocks.pop()
+        if end is not None:
+            self.ensure_eol()
+            self.body.append(end)
+
+    def close_open_blocks_early(self) -> None:
+        """Close every open block before a @node is written.
+
+        A toctree inside an admonition or block quote has the sections of the
+        documents it lists inlined into that block, but Texinfo does not allow
+        a @node or @menu inside @quotation or @cartouche.
+        """
+        for i in reversed(range(len(self.open_blocks))):
+            end = self.open_blocks[i]
+            if end is not None:
+                self.ensure_eol()
+                self.body.append(end)
+                self.open_blocks[i] = None
+
     def format_menu_entry(self, name: str, node_name: str, desc: str) -> str:
         if name == node_name:
             s = f'* {name}:: '
@@ -602,6 +629,7 @@ class TexinfoTranslator(SphinxTranslator):
         self.next_section_ids.update(node.get('ids', []))
         if not self.seen_title:
             return
+        self.close_open_blocks_early()
         if self.previous_section:
             self.add_menu(self.previous_section['node_name'])
         else:
@@ -796,11 +824,10 @@ class TexinfoTranslator(SphinxTranslator):
         self.body.append('\n')
 
     def visit_block_quote(self, node: Element) -> None:
-        self.body.append('\n@quotation\n')
+        self.open_block('\n@quotation\n', '@end quotation\n')
 
     def depart_block_quote(self, node: Element) -> None:
-        self.ensure_eol()
-        self.body.append('@end quotation\n')
+        self.close_block()
 
     def visit_literal_block(self, node: Element | None) -> None:
         self.body.append('\n@example\n')
@@ -1117,15 +1144,18 @@ class TexinfoTranslator(SphinxTranslator):
         if not name:
             title = cast('nodes.title', node[0])
             name = self.escape(title.astext())
-        self.body.append('\n@cartouche\n@quotation %s ' % name)
+        self.open_block(
+            '\n@cartouche\n@quotation %s ' % name, '@end quotation\n@end cartouche\n'
+        )
 
     def _visit_named_admonition(self, node: Element) -> None:
         label = admonitionlabels[node.tagname]
-        self.body.append('\n@cartouche\n@quotation %s ' % label)
+        self.open_block(
+            '\n@cartouche\n@quotation %s ' % label, '@end quotation\n@end cartouche\n'
+        )
 
     def depart_admonition(self, node: Element) -> None:
-        self.ensure_eol()
-        self.body.append('@end quotation\n@end cartouche\n')
+        self.close_block()
 
     visit_attention = _visit_named_admonition
     depart_attention = depart_admonition
