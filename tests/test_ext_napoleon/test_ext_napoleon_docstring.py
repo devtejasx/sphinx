@@ -839,6 +839,29 @@ Code sample for usage::
         actual = GoogleDocstring(docstring)
         assert str(actual) == expected
 
+    @pytest.mark.parametrize(
+        ('line', 'expected'),
+        [
+            ('arg (int)', ('arg ', 'int')),
+            ('arg ( dict(str, int) ) trailing', ('arg ', 'dict(str, int)')),
+            ('(arg) (int)', ('(arg) ', 'int')),
+            ('arg (  )', None),
+            ('arg (int', None),
+        ],
+    )
+    def test_typed_arg_regex(self, line, expected):
+        from sphinx.ext.napoleon.docstring import _google_typed_arg_regex
+
+        match = _google_typed_arg_regex.match(line)
+        assert (match.groups() if match else None) == expected
+
+    def test_typed_arg_no_catastrophic_backtracking(self):
+        # https://github.com/sphinx-doc/sphinx/issues/13730
+        # The previous pattern took ~30 seconds on this input.
+        docstring = 'brief summary\n\nArgs:\n    ' + ' (' + '(' * 2000 + '\n'
+        actual = GoogleDocstring(docstring)
+        assert ':param' in str(actual)
+
     def test_section_header_formatting(self):
         docstrings = [
             (

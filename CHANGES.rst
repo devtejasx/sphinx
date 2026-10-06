@@ -13,6 +13,10 @@ Bugs fixed
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
 
+* #13730: napoleon: Fix catastrophic regex backtracking when parsing a
+  Google-style argument line containing many opening parentheses.
+  Patch by Tejas Nagmote
+
 
 Release 9.1.0 (released Dec 31, 2025)
 =====================================

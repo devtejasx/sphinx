@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
 
 _directive_regex = re.compile(r'\.\. \S+::')
 _google_section_regex = re.compile(r'^(\s|\w)+:\s*$')
-_google_typed_arg_regex = re.compile(r'(.+?)\(\s*(.*[^\s]+)\s*\)')
+# The name stops at the first '(' and the type starts and ends with a
+# non-space character, so a match is found without catastrophic backtracking.
+_google_typed_arg_regex = re.compile(r'(.[^(]*)\(\s*(\S(?:.*\S)?)\s*\)')
 _numpy_section_regex = re.compile(r'^[=\-`:\'"~^_*+#<>]{2,}\s*$')
 _single_colon_regex = re.compile(r'(?<!:):(?!:)')
 _xref_or_code_regex = re.compile(
