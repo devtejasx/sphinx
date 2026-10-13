@@ -13,6 +13,11 @@ Bugs fixed
   English stemmer) and Dutch (which uses the Dutch Porter stemmer).
   Patch by Hugo van Kemenade
 
+* #14713: autodoc: Keep the signature when an annotation cannot be evaluated
+  because a name in it is bound to an object without the requested attribute,
+  for example ``np.timedelta64`` with ``np = None``.
+  Patch by Tejas Nagmote
+
 
 Release 9.1.0 (released Dec 31, 2025)
 =====================================

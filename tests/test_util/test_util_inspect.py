@@ -548,6 +548,16 @@ def test_signature_from_ast():
     assert sig.return_annotation == Parameter.empty
 
 
+def test_evaluate_signature_keeps_annotation_on_attribute_error() -> None:
+    # A name that is bound at runtime to something without the attribute,
+    # such as ``np = None`` when an optional dependency is missing (#14713).
+    sig = inspect.signature_from_str('(value: np.timedelta64, n: int) -> np.int64')
+    sig = inspect.evaluate_signature(sig, {'np': None})
+    assert sig.parameters['value'].annotation == 'np.timedelta64'
+    assert sig.parameters['n'].annotation is int
+    assert sig.return_annotation == 'np.int64'
+
+
 def test_safe_getattr_with_default() -> None:
     class Foo:
         def __getattr__(self, item):
