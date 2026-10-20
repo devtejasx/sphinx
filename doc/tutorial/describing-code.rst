@@ -149,6 +149,9 @@ at the beginning of ``conf.py``:
    from pathlib import Path
    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+``parents[2]`` is two directories above ``docs/source/``, the root of your
+project. That is where the Python code you document goes.
+
 .. note::
 
    An alternative to changing the :py:data:`sys.path` variable is to create a
@@ -183,8 +186,10 @@ of each instruction. This way, Sphinx can check whether the actual output
 matches the expected one.
 
 To observe how a doctest failure looks like (rather than a code error as
-above), let's write the return value incorrectly first. Therefore, add a
-function ``get_random_ingredients`` like this:
+above), let's write the return value incorrectly first. Therefore, create a
+file ``lumache.py`` in the root of your project, next to the ``docs``
+directory rather than inside ``docs/source``, with a function
+``get_random_ingredients`` like this:
 
 .. code-block:: python
    :caption: lumache.py
