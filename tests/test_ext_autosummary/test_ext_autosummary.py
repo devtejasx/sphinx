@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from contextlib import chdir
 from io import StringIO
+from types import ModuleType
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
@@ -821,6 +822,31 @@ def test_import_by_name() -> None:
     assert obj == sphinx.ext.autosummary.Autosummary.get_items
     assert parent is sphinx.ext.autosummary.Autosummary
     assert modname == 'sphinx.ext.autosummary'
+
+
+def test_import_by_name_class_with_property_of_the_same_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # https://github.com/sphinx-doc/sphinx/issues/13991
+    class foo:
+        def __init__(self) -> None:
+            pass
+
+        @property
+        def foo(self) -> None:
+            pass
+
+    module = ModuleType('_autosummary_13991')
+    module.foo = foo  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, '_autosummary_13991', module)
+
+    # the class template asks for ``foo.__init__`` inside the class ``foo``
+    prefixes = ['_autosummary_13991.foo', '_autosummary_13991', None]
+    prefixed_name, obj, parent, modname = import_by_name('foo.__init__', prefixes)
+    assert prefixed_name == '_autosummary_13991.foo.__init__'
+    assert obj is foo.__init__
+    assert parent is foo
+    assert modname == '_autosummary_13991'
 
 
 @pytest.mark.sphinx(

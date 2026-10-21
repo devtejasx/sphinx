@@ -647,6 +647,7 @@ def import_by_name(
     """
     tried = []
     errors: list[ImportExceptionGroup] = []
+    fallback: tuple[str, Any, Any, str] | None = None
     for prefix in prefixes:
         if prefix is not None and name.startswith(f'{prefix}.'):
             # Catch and avoid module cycles (e.g., sphinx.ext.sphinx.ext...)
@@ -670,12 +671,22 @@ def import_by_name(
             obj, parent, modname = _import_by_name(
                 prefixed_name, grouped_exception=True
             )
-            return prefixed_name, obj, parent, modname
+            if parent is None or isinstance(parent, (type, ModuleType)):
+                return prefixed_name, obj, parent, modname
+            # The name was found on an object that is neither a module nor
+            # a class, e.g. ``foo.__init__`` under the class ``foo`` resolved
+            # to the ``__init__`` of its property ``foo``.  Prefer a name
+            # found under one of the other prefixes.
+            if fallback is None:
+                fallback = prefixed_name, obj, parent, modname
         except ImportError:
             tried.append(prefixed_name)
         except ImportExceptionGroup as exc:
             tried.append(prefixed_name)
             errors.append(exc)
+
+    if fallback is not None:
+        return fallback
 
     exceptions: list[BaseException] = functools.reduce(
         operator.iadd, (e.exceptions for e in errors), []

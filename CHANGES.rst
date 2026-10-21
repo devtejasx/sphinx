@@ -16,6 +16,10 @@ Features added
 Bugs fixed
 ----------
 
+* #13991: autosummary: Fix a crash for a class with a property of the same name,
+  where ``foo.__init__`` was taken to be the ``__init__`` of the property.
+  Patch by Tejas Nagmote.
+
 Testing
 -------
 
