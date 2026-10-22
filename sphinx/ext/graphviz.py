@@ -344,6 +344,16 @@ def render_dot(
             __('dot did not produce an output file:\n[stderr]\n%r\n[stdout]\n%r')
             % (ret.stderr, ret.stdout)
         )
+    if ret.stderr.strip():
+        # dot reports problems such as unsupported attributes on stderr
+        # while still exiting successfully.
+        logger.warning(
+            __('dot command %r reported:\n%s'),
+            graphviz_dot,
+            ret.stderr.decode(errors='replace').rstrip(),
+            location=docname,
+            type='graphviz',
+        )
 
     if format == 'svg':
         fix_svg_relative_paths(self, outfn)

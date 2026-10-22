@@ -16,6 +16,10 @@ Features added
 Bugs fixed
 ----------
 
+* #14362: graphviz: Log the warnings that ``dot`` prints on standard error
+  when it otherwise succeeds, instead of discarding them.
+  Patch by Tejas Nagmote.
+
 Testing
 -------
 

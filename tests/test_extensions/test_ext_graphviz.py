@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -11,6 +13,8 @@ import pytest
 from sphinx.ext.graphviz import ClickableMapDefinition
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from sphinx.testing.util import SphinxTestApp
 
 
@@ -218,3 +222,26 @@ def test_graphviz_parse_mapfile() -> None:
     assert cmap.id == 'inheritance66ff5471b9'
     assert len(cmap.clickable) == 0
     assert cmap.generate_clickable_map() == ''
+
+
+@pytest.mark.sphinx('html', testroot='ext-graphviz')
+def test_graphviz_dot_warnings_are_logged(
+    app: SphinxTestApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_dot(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+        for arg in args:
+            if arg.endswith('.map'):
+                Path(arg[2:]).write_text(
+                    '<map id="%3" name="%3">\n</map>', encoding='utf8'
+                )
+            elif arg.startswith('-o'):
+                Path(arg[2:]).write_bytes(b'')
+        stderr = b'Warning: gvrender_set_style: unsupported style INVALID - ignoring\n'
+        return subprocess.CompletedProcess(args, 0, b'', stderr)
+
+    monkeypatch.setattr('sphinx.ext.graphviz.subprocess.run', fake_dot)
+    app.build(force_all=True)
+
+    warnings = app.warning.getvalue()
+    assert 'unsupported style INVALID - ignoring' in warnings
+    assert '[graphviz]' in warnings
