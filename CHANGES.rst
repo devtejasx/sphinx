@@ -18,6 +18,7 @@ Bugs fixed
 
 * #14427: Man page builder: render internal references as text again,
   instead of a stray ``<#target>`` or ``<>``, with Docutils 0.22 or later.
+
 Testing
 -------
 
