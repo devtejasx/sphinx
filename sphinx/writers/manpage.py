@@ -79,6 +79,13 @@ class ManualPageTranslator(SphinxTranslator, manpage.Translator):
     def __init__(self, document: nodes.document, builder: Builder) -> None:
         super().__init__(document, builder)
 
+        # Docutils 0.22+ binds its own reference handlers on the instance,
+        # which would shadow visit_reference() below, and drops the
+        # 'reference' markup that it uses.
+        for name in ('visit_reference', 'depart_reference'):
+            self.__dict__.pop(name, None)
+        self.defs.setdefault('reference', (r'\fI\%', r'\fP'))
+
         # first title is the manpage title
         self.section_level = -1
 

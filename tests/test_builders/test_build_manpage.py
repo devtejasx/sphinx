@@ -100,6 +100,18 @@ def test_default_man_pages() -> None:
     assert default_man_pages(config) == expected
 
 
+@pytest.mark.sphinx('man', testroot='manpage-references')
+def test_references(app: SphinxTestApp) -> None:
+    app.build()
+    content = (app.outdir / 'refs.1').read_text(encoding='utf8')
+    # internal references are rendered as text, without a target
+    assert r'A \fI\%ref\fP\&. A \fI\%doc\fP\&.' in content
+    assert '<#' not in content
+    assert '<>' not in content
+    # external references keep their OSC 8 hyperlink
+    assert r"\X'tty: link https://example.com'\fI\%ext\fP\X'tty: link'" in content
+
+
 @pytest.mark.sphinx('man', testroot='markup-rubric')
 def test_rubric(app: SphinxTestApp) -> None:
     app.build()
